@@ -1,0 +1,34 @@
+# Terraform
+**/.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+!*.tfvars.example
+.terraform.lock.hcl
+crash.log
+crash.*.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# ローカル一時ファイル / Claude Code 作業用
+.context/
+.env
+.env.local
+
+# Secret 系
+*.pem
+*.key
+*-credentials.json
+service-account-*.json
