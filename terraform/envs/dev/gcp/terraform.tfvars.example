@@ -1,0 +1,16 @@
+# Copy this file to terraform.tfvars (gitignored) and fill in values.
+# Do NOT commit terraform.tfvars.
+
+project_id      = "k8s-action-preview-26"
+region          = "us-central1"
+zone            = "us-central1-a"
+
+gke_machine_type = "e2-medium"
+gke_node_count   = 2
+
+github_owner = "mormorbump"
+github_repo  = "k8s-action"
+
+billing_account       = "01642F-CBD768-5F8412"
+budget_monthly_amount = 7500   # JPY での月額（必要なら currency_code を変える）
+budget_currency_code  = "JPY"

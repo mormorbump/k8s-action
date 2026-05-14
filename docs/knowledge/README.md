@@ -21,7 +21,7 @@
 | k8s/04-config.md | 未着手 | Phase 2, 3 | ConfigMap, Secret, env, volume |
 | k8s/05-namespace-rbac.md | 未着手 | Phase 2 | namespace 設計, RBAC, ServiceAccount |
 | k8s/06-resource-management.md | 未着手 | Phase 3 | requests/limits, QoS, HPA |
-| k8s/07-gke-specifics.md | 未着手 | Phase 1 | GKE 固有: Workload Identity, Standard |
+| k8s/07-gke-specifics.md | ✅完了 | Phase 1 | deletion_protection, gke-gcloud-auth-plugin, active account, VPC-native, WI 2 段設定 |
 
 ### istio
 
@@ -49,7 +49,7 @@
 |---|---|---|---|
 | container/01-image-build.md | 未着手 | Phase 1 | multi-stage build, distroless, layer cache |
 | container/02-go-dockerfile-tips.md | 未着手 | Phase 3 | Go 用 Dockerfile のベストプラクティス |
-| container/03-artifact-registry.md | 未着手 | Phase 1, 2 | GAR の権限, タグ戦略 |
+| container/03-artifact-registry.md | ✅完了 | Phase 1, 2 | GAR の権限, タグ戦略, GCR 比較, ECR との対応 |
 
 ### yaml-tips
 
@@ -70,22 +70,23 @@
 
 | ファイル | 状態 | 関連フェーズ | 内容 |
 |---|---|---|---|
-| terraform/01-state-backend.md | 未着手 | Phase 1 | GCS backend, lock, workspace, prefix 分割 |
-| terraform/02-helm-provider.md | 未着手 | Phase 1 | Terraform で Helm chart を扱う際の注意 |
-| terraform/03-google-provider.md | 未着手 | Phase 1 | google / google-beta provider 使い分け |
+| terraform/01-state-backend.md | ✅完了 | Phase 1 | GCS backend, state lock, force-unlock, prefix 分割, lock.hcl |
+| terraform/02-helm-provider.md | 未着手 | Phase 1-B | Terraform で Helm chart を扱う際の注意 |
+| terraform/03-google-provider.md | ✅完了 | Phase 1 | provider 設定, ADC, user_project_override, disable_on_destroy |
 | terraform/04-multi-stage-apply.md | 未着手 | Phase 1 | state 分割と terraform_remote_state, helm provider chicken-and-egg |
 
 ### gcp
 
 | ファイル | 状態 | 関連フェーズ | 内容 |
 |---|---|---|---|
-| gcp/01-iam-fundamentals.md | 未着手 | Phase 1 | SA / IAM binding / role 階層 / Workload Identity の理解基盤 |
+| gcp/01-iam-fundamentals.md | ✅完了 | Phase 1 | SA / IAM binding / role / 階層, active account vs ADC, kubectl 認証 |
+| gcp/02-billing-budget-gotchas.md | ✅完了 | Phase 1 | currency_code 通貨マッチ, all_updates_rule 省略, ADC user_project_override |
 
 ### ci-cd
 
 | ファイル | 状態 | 関連フェーズ | 内容 |
 |---|---|---|---|
-| ci-cd/01-workload-identity-federation.md | 未着手 | Phase 1, 2 | WIF の三段構造, attribute_condition (CEL), GitHub Actions 連携 |
+| ci-cd/01-workload-identity-federation.md | ✅完了 | Phase 1, 2 | WIF 三段構造, attribute_mapping/condition (CEL), principalSet, GHA 連携 |
 | ci-cd/02-github-actions-tips.md | 未着手 | Phase 2, 3 | reusable workflow, matrix, concurrency |
 
 ### observability
@@ -94,6 +95,12 @@
 |---|---|---|---|
 | observability/01-otel-baggage.md | ✅完了 | Phase 3 | 分散トレース, OTel, W3C Trace Context, Baggage, x-pr-id 伝播 |
 | observability/02-kiali-dashboard.md | 未着手 | Phase 4 | サービストポロジ, traffic graph |
+
+### comparison（他クラウドとの対応）
+
+| ファイル | 状態 | 関連フェーズ | 内容 |
+|---|---|---|---|
+| comparison/01-aws-ecs-mapping.md | ✅完了 | 全 | ECS/App Mesh/ECR/IAM Roles for Tasks ↔ k8s/Istio/GAR/Workload Identity, 隠蔽 vs 柔軟性比較 |
 
 ## 運用ルール
 
