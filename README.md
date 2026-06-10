@@ -85,10 +85,21 @@ gh label create preview --repo mormorbump/<app> --color 0E8A16
 
 | ファイル | 内容 | 調整ポイント |
 |---|---|---|
-| `app.yaml` | Deployment + Service | イメージ名, ポート, env, readinessProbe, initContainer（マイグレーション） |
+| `app.yaml` | API の Deployment + Service | イメージ名, ポート, env, readinessProbe, initContainer（マイグレーション） |
+| `ui.yaml` | Web UI の Deployment + Service（UI が無ければ不要） | API 接続 env 2 系統（下記） |
 | `stores.yaml` | 依存ストア（不要なら削除） | ストアには `sidecar.istio.io/inject: "false"` を付けて CPU 節約 |
-| `preview-istio.yaml` | 入口 VirtualService | hosts のアプリ名ラベル（`pr-0.<app>.…`） |
+| `preview-istio.yaml` | 入口 VirtualService | hosts のアプリ名ラベル（`pr-0.<app>.…`）と API パスの列挙 |
 | `kustomization.yaml` | 上記をまとめる | namespace プレースホルダ |
+
+**front + API 構成の標準パターン**（clipmind-template が実例）:
+
+- 入口 VS は「**API のパスプレフィックスを列挙し、デフォルトは UI**」の path 分岐にする。
+  UI フレームワーク内部のパス（websocket 等）を列挙せずに済み、
+  アプリごとの差分は「API パスの一覧」だけになる
+- UI には API 接続の env を 2 系統渡す:
+  - `<APP>_API_URL` … UI サーバプロセス → API（クラスタ内 DNS `http://<api-service>`）
+  - `<APP>_PUBLIC_API_URL` … ブラウザが `<img src>` 等で参照する URL
+    （外部ホスト。ApplicationSet が PR ごとにパッチ）
 
 確認: `kubectl kustomize gitops/overlays/<app>-template` が通ること。
 
