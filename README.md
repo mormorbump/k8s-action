@@ -40,25 +40,119 @@ backend-swimlane VS ── x-pr-id 一致 → PR の backend / 不一致 → bas
 第三者（フォーク）の PR は安全のため自動実行されない。
 オーナーが内容を確認して `preview` ラベルを手動で付けたときだけ環境が立つ。
 
-### 任意のアプリリポジトリを組み込む（ADR-0004）
+## 任意のアプリリポジトリを組み込む手順（ADR-0004）
 
-このリポジトリ自身だけでなく、**外部のアプリリポジトリの PR** にも
-プレビュー環境を提供できる（初例: [clipmind](https://github.com/mormorbump/clipmind)）。
+この基盤は、**mormorbump 配下の任意のアプリリポジトリ**の PR にプレビュー環境を
+提供できる。実装済みの例: [clipmind](https://github.com/mormorbump/clipmind)
+（FastAPI + postgres/redis/qdrant の「丸ごとプレビュー」）。
 
-アプリリポジトリ側（コピペで済む）:
+### 前提条件（アプリ側が満たすべきこと）
 
-1. `Dockerfile` を用意（イメージ名 = リポジトリ名）
-2. `.github/workflows/pr-build.yaml` と `auto-preview-label.yaml` をコピーし、
-   イメージ名だけ変更。`preview` ラベルをリポジトリに作成
+- HTTP でリッスンする（ポートは任意。Service で 80 にマップする）
+- ヘルスチェック用エンドポイントがある（`/health` 等。readinessProbe に使う）
+- 設定を**環境変数**で受け取れる（DB の URL 等。プレビューごとに差し替えるため）
+- DB スキーマが必要なら、マイグレーションをコマンド一発で実行できる
+  （initContainer で叩く。例: `alembic upgrade head`）
 
-プラットフォーム側（このリポジトリ）:
+### STEP 1: アプリリポジトリに Dockerfile を置く
 
-1. `gitops/overlays/<アプリ名>-template/` にマニフェスト一式を作成
-   （アプリ + 依存ストア + 入口 VirtualService）
-2. `gitops/argocd/applicationsets/<アプリ名>-pr-preview.yaml` を作成して apply。
-   Generator はアプリリポジトリの PR を監視し、マニフェストは本リポジトリから読む
+- イメージは `linux/amd64`・CPU のみで動くこと（ノードに GPU はない）
+- ML 系依存がある場合は CUDA 同梱 wheel に注意
+  （clipmind では pytorch-cpu index 指定で 6.3GB → 2.4GB。
+  `docs/knowledge/container/01-image-build.md` 参照）
 
-ホストは `pr-<N>.<アプリ名>.<INGRESS-IP>.nip.io` で共有 Gateway に相乗りする。
+### STEP 2: アプリリポジトリに CI を置く
+
+`preview` ラベルを作成し、このリポジトリからワークフロー 2 本をコピーする
+（**変更箇所はイメージ名のみ**）:
+
+```bash
+gh label create preview --repo mormorbump/<app> --color 0E8A16
+# clipmind の実物をコピーして <app> に書き換えるのが早い
+#   .github/workflows/pr-build.yaml          … head SHA タグで GAR に push
+#   .github/workflows/auto-preview-label.yaml … オーナー PR に preview ラベル自動付与
+```
+
+- pr-build 内のイメージ名を `…/preview/<app>:${{ github.event.pull_request.head.sha }}` にする
+- WIF はオーナー単位（`repository_owner == mormorbump`）で許可済みのため、
+  GCP 側の追加設定は不要
+
+### STEP 3: このリポジトリにマニフェストのテンプレートを作る
+
+`gitops/overlays/<app>-template/` を作成（`clipmind-template/` をコピーして調整）:
+
+| ファイル | 内容 | 調整ポイント |
+|---|---|---|
+| `app.yaml` | Deployment + Service | イメージ名, ポート, env, readinessProbe, initContainer（マイグレーション） |
+| `stores.yaml` | 依存ストア（不要なら削除） | ストアには `sidecar.istio.io/inject: "false"` を付けて CPU 節約 |
+| `preview-istio.yaml` | 入口 VirtualService | hosts のアプリ名ラベル（`pr-0.<app>.…`） |
+| `kustomization.yaml` | 上記をまとめる | namespace プレースホルダ |
+
+確認: `kubectl kustomize gitops/overlays/<app>-template` が通ること。
+
+注意点:
+
+- VS の destination は**短縮名**（例: `host: clipmind`）にする。
+  ApplicationSet が namespace を差し替えるだけで行き先が PR 環境に追従する
+- ストアは PVC なしの使い捨て（PR クローズで全消去）
+- Secret（API キー等）はテンプレートに入れない。必要なら手動で
+  PR namespace に作るか、SealedSecret 等を導入する
+
+### STEP 4: ApplicationSet を追加して apply
+
+`gitops/argocd/applicationsets/<app>-pr-preview.yaml`
+（`clipmind-pr-preview.yaml` をコピーして `<app>` を置換）:
+
+```yaml
+generators:
+  - pullRequest:
+      github:
+        owner: mormorbump
+        repo: <app>            # ← アプリリポジトリの PR を監視
+        labels: [preview]
+      requeueAfterSeconds: 300
+template:
+  spec:
+    source:
+      repoURL: https://github.com/mormorbump/k8s-action.git  # ← マニフェストは本リポジトリ
+      targetRevision: main
+      path: gitops/overlays/<app>-template
+      kustomize:
+        namespace: "preview-<app>-{{number}}"
+        images:
+          - "us-central1-docker.pkg.dev/k8s-action-preview-26/preview/<app>:{{head_sha}}"
+        patches:
+          - target: { kind: VirtualService, name: preview-entry }
+            patch: |-
+              - op: replace
+                path: /spec/hosts/0
+                value: pr-{{number}}.<app>.104.154.128.86.nip.io
+```
+
+```bash
+kubectl apply -f gitops/argocd/applicationsets/<app>-pr-preview.yaml
+git add . && git commit && git push   # テンプレートは main から読まれるため push 必須
+```
+
+### STEP 5: 動作確認
+
+アプリリポジトリに PR を出す（オーナーならラベル自動付与）。
+
+```bash
+gh run list --repo mormorbump/<app> --workflow pr-build   # ビルド確認
+kubectl -n argocd get applications                         # <app>-pr-<N> が生える（最大5分）
+curl http://pr-<N>.<app>.104.154.128.86.nip.io/health      # 200 で完成
+```
+
+### よくあるハマりどころ
+
+| 症状 | 原因 | 対処 |
+|---|---|---|
+| Pod が ImagePullBackOff | sync がビルド完了より先行 | push 完了後に自動回復するので待つ |
+| Pod が Pending | ノード CPU requests 満杯 | 他のプレビューを閉じる（同時 2〜3 環境が上限） |
+| ホストにアクセスできない | nip.io の IP 誤パース | ホスト形式は `pr-<N>.<app>.<IP>.nip.io` を守る（`<app>` ラベル必須） |
+| Application が生えない | ApplicationSet のポーリング間隔 | 最大 5 分待つ。ラベルの有無も確認 |
+| 環境は消えたが namespace が残る | Argo CD は作成した namespace を消さない | `kubectl delete ns preview-<app>-<N>` |
 
 ### インフラの構築（初回）
 
