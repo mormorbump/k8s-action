@@ -1,0 +1,17 @@
+# Ingress Gateway 用のワイルドカード TLS 証明書。
+# Istio Gateway の credentialName は「Gateway Pod と同じ namespace の
+# Secret」を参照する必要があるため istio-ingress に置く。
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: preview-tls
+  namespace: istio-ingress
+spec:
+  secretName: preview-tls
+  commonName: "*.104.154.128.86.nip.io"
+  dnsNames:
+    - "*.104.154.128.86.nip.io"
+    - "app.104.154.128.86.nip.io"
+  issuerRef:
+    name: preview-ca
+    kind: ClusterIssuer

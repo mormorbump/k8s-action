@@ -11,7 +11,9 @@ metadata:
   name: preview-entry
 spec:
   hosts:
-    - "pr-0.104.154.128.86.nip.io" # patched: pr-<N>.…
+    # "preview" ラベルを挟むのは nip.io 対策。pr-1.104.… だと nip.io が
+    # 「1.104.154.128」を IP として誤パースする（ダッシュ記法サポートの副作用）
+    - "pr-0.preview.104.154.128.86.nip.io" # patched: pr-<N>.…
   gateways:
     - baseline/preview-gateway # 共有 Gateway（baseline namespace）に相乗り
   http:

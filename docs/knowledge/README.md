@@ -30,7 +30,7 @@
 | istio/01-mesh-basics.md | ✅完了 | Phase 1 | data plane / control plane, Envoy, xDS |
 | istio/02-traffic-management.md | ✅完了 | Phase 1, 3 | Gateway, VirtualService, DestinationRule, subset, ヘッダー分岐 |
 | istio/03-sidecar-injection.md | ✅完了 | Phase 1 | auto injection, init container, iptables, Mutating Webhook |
-| istio/04-header-routing.md | 未着手 | Phase 3 | match による分岐, スイムレーン実装 |
+| istio/04-header-routing.md | ✅完了 | Phase 3 | x-pr-id スイムレーン全体像, ヘッダー注入/match, exportTo, 短縮名解決 |
 | istio/05-observability.md | 未着手 | Phase 4 | Kiali, Prometheus, Jaeger |
 
 ### networking
@@ -55,7 +55,7 @@
 
 | ファイル | 状態 | 関連フェーズ | 内容 |
 |---|---|---|---|
-| yaml-tips/01-kustomize.md | 未着手 | Phase 2, 3 | base/overlay, patch, namePrefix |
+| yaml-tips/01-kustomize.md | ✅完了 | Phase 3 | base/overlay, ApplicationSet との役割分担, JSON patch の罠 |
 | yaml-tips/02-helm.md | 未着手 | Phase 1 | chart 構造, values, template |
 | yaml-tips/03-common-pitfalls.md | 未着手 | 全 | YAML の罠（インデント, タブ, anchor 等） |
 
@@ -64,7 +64,7 @@
 | ファイル | 状態 | 関連フェーズ | 内容 |
 |---|---|---|---|
 | gitops/01-argocd-basics.md | ✅完了 | Phase 2 | GitOps 4 原則, Argo CD は k8s 上の Pod, Application, sync |
-| gitops/02-applicationset.md | ✅完了 | Phase 3 | Generator, PR Generator, kustomize overlay, 「差分デプロイ」の正体 |
+| gitops/02-applicationset.md | ✅完了 | Phase 3 | Generator, PR Generator, トークンなし運用, managedNamespaceMetadata（Phase 3 実践済）|
 
 ### terraform
 
@@ -87,7 +87,7 @@
 | ファイル | 状態 | 関連フェーズ | 内容 |
 |---|---|---|---|
 | ci-cd/01-workload-identity-federation.md | ✅完了 | Phase 1, 2 | WIF 三段構造, attribute_mapping/condition (CEL), principalSet, GHA 連携 |
-| ci-cd/02-github-actions-tips.md | 未着手 | Phase 2, 3 | reusable workflow, matrix, concurrency |
+| ci-cd/02-github-actions-tips.md | ✅完了 | Phase 2, 3 | label ゲート, concurrency, matrix, head SHA タグ受け渡し |
 
 ### observability
 

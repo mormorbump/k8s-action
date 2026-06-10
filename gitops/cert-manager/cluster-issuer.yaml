@@ -1,0 +1,35 @@
+# 学習用の自己署名 CA 構成。
+# nip.io ドメインで Let's Encrypt を使うとレート制限（他者と共有）に
+# 当たりやすいため、自己署名 CA → CA 発行の 2 段構成にする。
+# ブラウザ/curl では -k や CA 信頼追加が必要（curl -k で検証する）。
+---
+# 1. 自己署名でルート CA 証明書を作る Issuer
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: selfsigned-bootstrap
+spec:
+  selfSigned: {}
+---
+# 2. ルート CA 証明書（istio-ingress namespace に置く）
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: preview-root-ca
+  namespace: istio-ingress
+spec:
+  isCA: true
+  commonName: preview-root-ca
+  secretName: preview-root-ca
+  issuerRef:
+    name: selfsigned-bootstrap
+    kind: ClusterIssuer
+---
+# 3. ルート CA で署名する ClusterIssuer（以後の証明書はこれで発行）
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: preview-ca
+spec:
+  ca:
+    secretName: preview-root-ca
