@@ -21,8 +21,13 @@ env:
 
 jobs:
   build-push:
-    # preview ラベルが付いている PR だけビルドする
-    if: contains(github.event.pull_request.labels.*.name, 'preview')
+    # オーナー本人の PR は無条件、第三者（フォーク）の PR は preview ラベル必須。
+    # ※ auto-preview-label が GITHUB_TOKEN で付けるラベルの labeled イベントは
+    #   再帰防止のため他ワークフローをトリガーしないので、ラベルに依存せず
+    #   author でも判定する（ApplicationSet はポーリングなのでラベルで動く）
+    if: >-
+      github.event.pull_request.author_association == 'OWNER' ||
+      contains(github.event.pull_request.labels.*.name, 'preview')
     runs-on: ubuntu-latest
     strategy:
       matrix:
