@@ -33,3 +33,4 @@ Thumbs.db
 *.key
 *-credentials.json
 service-account-*.json
+tools/archviz/data.json
