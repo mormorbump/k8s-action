@@ -231,3 +231,11 @@ syncPolicy:
 generator のフィルタ（labels: [preview]）から外れた PR の Application は
 自動削除され、`prune: true` + finalizer により namespace ごと消える。
 クローズでも同様。「片付け忘れ」が構造的に起きないのが GitOps の旨味。
+
+### namespace は prune されない（実測）
+
+PR クローズで Application と中のリソース（Deployment / Service / VS）は
+全て自動削除されたが、**`CreateNamespace=true` で作られた namespace は
+空の殻として残る**。Argo CD は「自分が作った namespace」を管理対象として
+追跡しないため。必要なら手動削除するか、namespace 自体を
+マニフェスト管理（テンプレートに含める）に切り替える。
