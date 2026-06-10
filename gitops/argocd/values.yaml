@@ -1,0 +1,26 @@
+# Argo CD Helm chart values（学習用 e2-medium x2 向けの軽量設定）
+#
+# インストール手順（Terraform 範囲外、ADR-0001 の「範囲C」方針）:
+#   helm repo add argo https://argoproj.github.io/argo-helm
+#   helm install argocd argo/argo-cd -n argocd --create-namespace -f gitops/argocd/values.yaml
+
+# SSO 連携用の Dex は使わない（admin ユーザーで十分）
+dex:
+  enabled: false
+
+# Slack 等への通知機能は使わない
+notifications:
+  enabled: false
+
+configs:
+  params:
+    # TLS 終端は Istio Gateway / port-forward に任せ、Argo CD 自体は HTTP で受ける
+    server.insecure: true
+
+# HA 構成は不要なので全コンポーネント 1 replica（chart デフォルトのまま明示）
+controller:
+  replicas: 1
+repoServer:
+  replicas: 1
+server:
+  replicas: 1
