@@ -1,0 +1,17 @@
+# baseline の入口: app.<IP>.nip.io → baseline frontend
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: baseline-entry
+  namespace: baseline
+spec:
+  hosts:
+    - "app.104.154.128.86.nip.io"
+  gateways:
+    - preview-gateway
+  http:
+    - route:
+        - destination:
+            host: frontend.baseline.svc.cluster.local
+            port:
+              number: 80

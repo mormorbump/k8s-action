@@ -1,0 +1,19 @@
+# プレビュー環境全体の共有 Gateway。
+# app.<IP>.nip.io (baseline) と pr-<N>.<IP>.nip.io (PR プレビュー) を
+# ワイルドカードでまとめて受ける。ルーティングは各 VirtualService が担当。
+apiVersion: networking.istio.io/v1beta1
+kind: Gateway
+metadata:
+  name: preview-gateway
+  namespace: baseline
+spec:
+  selector:
+    istio: ingressgateway
+  servers:
+    - port:
+        number: 80
+        name: http
+        protocol: HTTP
+      hosts:
+        - "app.104.154.128.86.nip.io"
+        - "*.104.154.128.86.nip.io" # pr-<N>.… をカバー

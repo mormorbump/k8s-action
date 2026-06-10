@@ -1,0 +1,48 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend
+  labels:
+    app: frontend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: frontend
+  template:
+    metadata:
+      labels:
+        app: frontend
+      annotations:
+        proxy.istio.io/config: |
+          holdApplicationUntilProxyStarts: true
+    spec:
+      containers:
+        - name: frontend
+          image: us-central1-docker.pkg.dev/k8s-action-preview-26/preview/frontend:baseline
+          ports:
+            - containerPort: 8080
+          env:
+            # 呼び先は PR 環境でも常に baseline の FQDN。
+            # x-pr-id が付いたリクエストは VirtualService (backend-swimlane) が
+            # PR namespace の backend へ振り替える。
+            - name: BACKEND_URL
+              value: http://backend.baseline.svc.cluster.local
+            - name: NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: VERSION
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 8080
+          resources:
+            requests:
+              cpu: 30m
+              memory: 32Mi
+            limits:
+              memory: 64Mi

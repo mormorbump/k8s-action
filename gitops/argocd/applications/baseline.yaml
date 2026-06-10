@@ -1,0 +1,23 @@
+# baseline スイムレーン（frontend + backend + 入口 Gateway/VS）の Argo CD Application
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: baseline
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/mormorbump/k8s-action.git
+    targetRevision: main
+    path: gitops/overlays/baseline
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: baseline
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=false
