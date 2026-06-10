@@ -6,5 +6,6 @@ kind: Kustomization
 namespace: preview-clipmind-0 # ApplicationSet の kustomize.namespace で上書き
 resources:
   - app.yaml
+  - ui.yaml
   - stores.yaml
   - preview-istio.yaml

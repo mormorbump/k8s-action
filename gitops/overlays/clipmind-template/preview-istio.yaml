@@ -1,5 +1,11 @@
-# ClipMind プレビューの入口。単一サービスなのでスイムレーン（x-pr-id）は不要、
-# Host ベースで PR namespace の clipmind に直行する「丸ごとプレビュー」方式。
+# ClipMind プレビューの入口（path ベースで API / Web UI に分岐）。
+#
+#   /api/ /health /ws/ /static/ /docs /openapi.json /redoc /metrics → API (FastAPI)
+#   それ以外（/, /_stcore/* など）                                   → Web UI (Streamlit)
+#
+# UI をデフォルト側にすることで、Streamlit の内部パス（websocket 含む）を
+# 列挙せずに済む。アプリを追加するときもこの「API プレフィックス列挙 +
+# デフォルトは UI」の形を踏襲すれば、アプリごとの差分は API パスの一覧だけになる。
 apiVersion: networking.istio.io/v1beta1
 kind: VirtualService
 metadata:
@@ -10,8 +16,30 @@ spec:
   gateways:
     - baseline/preview-gateway # k8s-action が管理する共有 Gateway に相乗り
   http:
-    - route:
+    - match: # 配列内は OR
+        - uri:
+            prefix: /api/
+        - uri:
+            prefix: /health
+        - uri:
+            prefix: /ws/
+        - uri:
+            prefix: /static/
+        - uri:
+            prefix: /docs
+        - uri:
+            prefix: /openapi.json
+        - uri:
+            prefix: /redoc
+        - uri:
+            prefix: /metrics
+      route:
         - destination:
             host: clipmind # 短縮名 → この VS の namespace に解決
+            port:
+              number: 80
+    - route: # デフォルト: Web UI（Streamlit の websocket /_stcore/stream も含む）
+        - destination:
+            host: ui
             port:
               number: 80

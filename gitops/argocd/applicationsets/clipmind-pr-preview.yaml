@@ -31,6 +31,7 @@ spec:
           namespace: "preview-clipmind-{{number}}"
           images:
             - "us-central1-docker.pkg.dev/k8s-action-preview-26/preview/clipmind:{{head_sha}}"
+            - "us-central1-docker.pkg.dev/k8s-action-preview-26/preview/clipmind-ui:{{head_sha}}"
           patches:
             - target:
                 kind: VirtualService
@@ -39,6 +40,15 @@ spec:
                 - op: replace
                   path: /spec/hosts/0
                   value: pr-{{number}}.clipmind.104.154.128.86.nip.io
+            # ブラウザ向け URL（<img src> 等）を PR の外部ホストに差し替える。
+            # env[0] = CLIPMIND_PUBLIC_API_URL 前提（ui.yaml 側の env 順序に依存）
+            - target:
+                kind: Deployment
+                name: ui
+              patch: |-
+                - op: replace
+                  path: /spec/template/spec/containers/0/env/0/value
+                  value: http://pr-{{number}}.clipmind.104.154.128.86.nip.io
       destination:
         server: https://kubernetes.default.svc
         namespace: "preview-clipmind-{{number}}"
