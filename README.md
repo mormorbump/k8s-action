@@ -29,11 +29,16 @@ backend-swimlane VS ── x-pr-id 一致 → PR の backend / 不一致 → bas
 
 ### PR プレビューを立てる
 
-1. PR を作り `preview` ラベルを付ける
-2. GitHub Actions (pr-build) が head SHA タグでイメージを GAR に push
-3. Argo CD ApplicationSet（5 分間隔のポーリング）が `preview-pr-<N>` namespace に環境を生成
-4. `http://pr-<N>.preview.<INGRESS-IP>.nip.io/` でアクセス
-5. PR クローズ or ラベル除去で自動削除（namespace の殻のみ手動削除）
+**オーナー本人の PR は作るだけで全自動**:
+
+1. PR を作る → `preview` ラベルが自動付与され（auto-preview-label）、
+   pr-build が head SHA タグでイメージを GAR に push
+2. Argo CD ApplicationSet（5 分間隔のポーリング）が `preview-pr-<N>` namespace に環境を生成
+3. `http://pr-<N>.preview.<INGRESS-IP>.nip.io/` でアクセス
+4. PR クローズ or ラベル除去で自動削除（namespace の殻のみ手動削除）
+
+第三者（フォーク）の PR は安全のため自動実行されない。
+オーナーが内容を確認して `preview` ラベルを手動で付けたときだけ環境が立つ。
 
 ### インフラの構築（初回）
 
