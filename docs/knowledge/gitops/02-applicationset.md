@@ -192,3 +192,42 @@ PR がクローズされたら ApplicationSet が Application を消し、
 - ApplicationSet: https://argo-cd.readthedocs.io/en/stable/operator-manual/applicationset/
 - PullRequest Generator: https://argo-cd.readthedocs.io/en/stable/operator-manual/applicationset/Generators-Pull-Request/
 - kustomize 公式: https://kustomize.io/
+
+## Phase 3 での追記（実践知見）
+
+### トークンなしで PullRequest Generator を使う
+
+public リポジトリなら `tokenRef` を省略できる。ただし GitHub API の
+匿名レート制限（60 req/h, IP 単位）に乗るため `requeueAfterSeconds: 300` に設定。
+プレビュー反映が最大 5 分遅れるのは学習用途では許容。
+本番は PAT か GitHub App + webhook で即時化する。
+
+### reconcile タイミングの罠
+
+ApplicationSet は適用直後に 1 回 reconcile し、以後 requeue 間隔でポーリングする。
+「PR を作ったのに Application が生えない」ときは、直前の reconcile が
+`generated 0 applications` で終わっていないかログを見る:
+
+```bash
+kubectl -n argocd logs deployment/argocd-applicationset-controller | grep "generated"
+```
+
+### namespace へのラベル付与（istio-injection）
+
+PR namespace は `CreateNamespace=true` で自動作成されるが、
+素のままだと sidecar 注入ラベルが付かない。`managedNamespaceMetadata` で解決:
+
+```yaml
+syncPolicy:
+  syncOptions:
+    - CreateNamespace=true
+  managedNamespaceMetadata:
+    labels:
+      istio-injection: enabled
+```
+
+### 環境の削除は「ラベルを外す」だけ
+
+generator のフィルタ（labels: [preview]）から外れた PR の Application は
+自動削除され、`prune: true` + finalizer により namespace ごと消える。
+クローズでも同様。「片付け忘れ」が構造的に起きないのが GitOps の旨味。
