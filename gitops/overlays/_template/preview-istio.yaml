@@ -1,0 +1,55 @@
+# PR プレビュー用 Istio リソース（ApplicationSet が値をパッチして PR ごとに生成）
+# プレースホルダ "0" は ApplicationSet の kustomize patches で PR 番号に置換される。
+#
+# 短縮名 destination（host: frontend / backend）は
+# 「この VS が置かれた namespace」基準で FQDN に解決される（ADR-0003）。
+---
+# 入口: pr-<N>.<IP>.nip.io で来たリクエストに x-pr-id を注入し PR の frontend へ
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: preview-entry
+spec:
+  hosts:
+    - "pr-0.104.154.128.86.nip.io" # patched: pr-<N>.…
+  gateways:
+    - baseline/preview-gateway # 共有 Gateway（baseline namespace）に相乗り
+  http:
+    - headers:
+        request:
+          set:
+            x-pr-id: "0" # patched: "<N>"
+      route:
+        - destination:
+            host: frontend # 短縮名 → frontend.preview-pr-<N>.svc.cluster.local
+            port:
+              number: 80
+---
+# スイムレーン: baseline の backend 宛て通信のうち x-pr-id が一致するものだけ
+# PR の backend へ振り替える。exportTo "." で自 namespace の sidecar からしか
+# 見えないため、baseline や他 PR には影響しない。
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: backend-swimlane
+spec:
+  hosts:
+    - "backend.baseline.svc.cluster.local"
+  exportTo:
+    - "."
+  http:
+    - match:
+        - headers:
+            x-pr-id:
+              exact: "0" # patched: "<N>"
+      route:
+        - destination:
+            host: backend # 短縮名 → backend.preview-pr-<N>.svc.cluster.local
+            port:
+              number: 80
+    - route:
+        # ヘッダー不一致（伝播切れ等）は baseline へフォールバック
+        - destination:
+            host: backend.baseline.svc.cluster.local
+            port:
+              number: 80

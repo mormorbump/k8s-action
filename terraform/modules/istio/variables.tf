@@ -19,7 +19,7 @@ variable "ingress_namespace" {
 variable "istiod_cpu_request" {
   type        = string
   description = "CPU request for istiod (default Istio: 500m, lowered for learning)"
-  default     = "100m"
+  default     = "50m"
 }
 
 variable "istiod_memory_request" {
@@ -31,7 +31,7 @@ variable "istiod_memory_request" {
 variable "gateway_cpu_request" {
   type        = string
   description = "CPU request for Istio Ingress Gateway"
-  default     = "100m"
+  default     = "50m"
 }
 
 variable "gateway_memory_request" {

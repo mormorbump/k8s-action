@@ -47,6 +47,18 @@ resource "helm_release" "istiod" {
     value = "1"
   }
 
+  # 注入される istio-proxy sidecar のデフォルト requests を削減。
+  # デフォルト (cpu 100m) のままだと Pod を置くたびに 100m の「税金」がかかり、
+  # e2-medium × 2 では baseline + PR プレビュー数レーンが載らない。
+  set {
+    name  = "global.proxy.resources.requests.cpu"
+    value = "30m"
+  }
+  set {
+    name  = "global.proxy.resources.requests.memory"
+    value = "64Mi"
+  }
+
   depends_on = [helm_release.istio_base]
 }
 

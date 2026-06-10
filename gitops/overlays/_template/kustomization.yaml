@@ -1,0 +1,10 @@
+# PR プレビュー環境のテンプレート overlay。
+# 直接 apply はせず、ApplicationSet (gitops/argocd/applicationsets/pr-preview.yaml) が
+# namespace / images / VS の値を差し替えて PR ごとに展開する。
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: preview-pr-0 # ApplicationSet の kustomize.namespace で上書き
+resources:
+  - ../../base/frontend
+  - ../../base/backend
+  - preview-istio.yaml

@@ -1,0 +1,66 @@
+# PR プレビュー環境の自動生成。
+# 「preview ラベルが付いた open な PR」1 つにつき Application を 1 つ生成し、
+# PR クローズ / ラベル除去で prune によって環境ごと削除される。
+#
+# 認証トークンなしのパブリックリポジトリ参照のため、GitHub API の
+# 匿名レート制限 (60 req/h) に収まるよう requeue は 5 分間隔。
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: pr-preview
+  namespace: argocd
+spec:
+  goTemplate: false
+  generators:
+    - pullRequest:
+        github:
+          owner: mormorbump
+          repo: k8s-action
+          labels:
+            - preview # この label が付いた PR のみ対象
+        requeueAfterSeconds: 300
+  template:
+    metadata:
+      name: "pr-{{number}}"
+    spec:
+      project: default
+      source:
+        repoURL: https://github.com/mormorbump/k8s-action.git
+        targetRevision: "{{head_sha}}"
+        path: gitops/overlays/_template
+        kustomize:
+          namespace: "preview-pr-{{number}}"
+          images:
+            # PR の CI (pr-build.yaml) が head SHA タグで push したイメージを使う
+            - "us-central1-docker.pkg.dev/k8s-action-preview-26/preview/frontend:{{head_sha}}"
+            - "us-central1-docker.pkg.dev/k8s-action-preview-26/preview/backend:{{head_sha}}"
+          patches:
+            - target:
+                kind: VirtualService
+                name: preview-entry
+              patch: |-
+                - op: replace
+                  path: /spec/hosts/0
+                  value: pr-{{number}}.104.154.128.86.nip.io
+                - op: replace
+                  path: /spec/http/0/headers/request/set/x-pr-id
+                  value: "{{number}}"
+            - target:
+                kind: VirtualService
+                name: backend-swimlane
+              patch: |-
+                - op: replace
+                  path: /spec/http/0/match/0/headers/x-pr-id/exact
+                  value: "{{number}}"
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: "preview-pr-{{number}}"
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+          - CreateNamespace=true
+        managedNamespaceMetadata:
+          labels:
+            istio-injection: enabled # PR namespace にも sidecar 注入
