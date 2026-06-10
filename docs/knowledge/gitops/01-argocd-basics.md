@@ -152,3 +152,45 @@ helm install argocd argo/argo-cd -n argocd
 - Argo CD 公式: https://argo-cd.readthedocs.io/
 - GitOps 原則: https://opengitops.dev/
 - Application API: https://argo-cd.readthedocs.io/en/stable/operator-manual/declarative-setup/
+
+## Phase 2 での追記（実践知見）
+
+### 実際のインストール構成
+
+dex（SSO）と notifications を無効化し、values は `gitops/argocd/values.yaml` で git 管理:
+
+```bash
+helm install argocd argo/argo-cd -n argocd --create-namespace -f gitops/argocd/values.yaml
+```
+
+コンポーネントは 5 つ: application-controller (StatefulSet), applicationset-controller,
+repo-server, redis, server。e2-medium × 2 にこの構成で問題なく乗った。
+
+### Application の重要フィールド（実物）
+
+```yaml
+syncPolicy:
+  automated:
+    prune: true    # Git から消えたリソースをクラスタからも消す
+    selfHeal: true # kubectl で手動変更しても Git の状態に巻き戻される
+finalizers:
+  - resources-finalizer.argocd.argoproj.io  # App 削除時に管理下リソースもカスケード削除
+```
+
+- `selfHeal: true` の世界では **kubectl edit は無意味になる**（数秒で巻き戻る）。
+  これが「Git が唯一の真実」の実体。
+- public リポジトリなら credential 設定なしで `repoURL` を https 指定するだけで読める。
+
+### sync を今すぐ走らせたいとき
+
+デフォルトのポーリングは 3 分間隔。待たずに反映するには refresh annotation:
+
+```bash
+kubectl -n argocd annotate application hello argocd.argoproj.io/refresh=normal --overwrite
+```
+
+### 既存リソースの「引き取り」
+
+Phase 1-C で kubectl apply 済みのリソースと Git のマニフェストが一致していれば、
+Application 作成時にそのまま Synced として引き取られる（再作成されない）。
+手動運用 → GitOps 移行はマニフェストが同一なら無停止でできる。

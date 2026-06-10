@@ -20,7 +20,7 @@
 | k8s/03-networking.md | ✅完了 | Phase 1, 3 | Service, Ingress, DNS→ClusterIP→iptables の流れ, Istio との住み分け |
 | k8s/04-config.md | 未着手 | Phase 2, 3 | ConfigMap, Secret, env, volume |
 | k8s/05-namespace-rbac.md | 未着手 | Phase 2 | namespace 設計, RBAC, ServiceAccount |
-| k8s/06-resource-management.md | 未着手 | Phase 3 | requests/limits, QoS, HPA |
+| k8s/06-resource-management.md | ✅完了 | Phase 2 | requests/limits, QoS, sidecar の CPU 税, Insufficient cpu 実例 |
 | k8s/07-gke-specifics.md | ✅完了 | Phase 1 | deletion_protection, gke-gcloud-auth-plugin, active account, VPC-native, WI 2 段設定 |
 
 ### istio
