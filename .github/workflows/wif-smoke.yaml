@@ -1,0 +1,42 @@
+# Phase 2-C: WIF (Workload Identity Federation) の疎通テスト。
+# 鍵レスで GitHub Actions → GCP 認証 → Artifact Registry push までを確認する。
+name: wif-smoke
+
+on:
+  workflow_dispatch: # 手動トリガー専用
+
+permissions:
+  contents: read
+  id-token: write # WIF に必須: GitHub OIDC トークンの発行を許可
+
+env:
+  GAR_LOCATION: us-central1
+  GAR_REPO: us-central1-docker.pkg.dev/k8s-action-preview-26/preview
+
+jobs:
+  push-smoke-image:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # GitHub の OIDC トークンを GCP の短命アクセストークンに交換する
+      - id: auth
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: projects/1045675327208/locations/global/workloadIdentityPools/github-pool/providers/github-provider
+          service_account: gha-deployer@k8s-action-preview-26.iam.gserviceaccount.com
+
+      - uses: google-github-actions/setup-gcloud@v2
+
+      # docker push 時に GAR へ認証情報を渡せるようにする
+      - name: Configure docker for GAR
+        run: gcloud auth configure-docker ${{ env.GAR_LOCATION }}-docker.pkg.dev --quiet
+
+      - name: Build and push smoke image
+        run: |
+          cat > Dockerfile.smoke <<'EOF'
+          FROM busybox:1.36
+          CMD ["echo", "wif-smoke ok"]
+          EOF
+          docker build -f Dockerfile.smoke -t "$GAR_REPO/wif-smoke:${{ github.sha }}" .
+          docker push "$GAR_REPO/wif-smoke:${{ github.sha }}"
