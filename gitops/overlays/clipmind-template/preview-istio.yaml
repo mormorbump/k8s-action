@@ -1,0 +1,17 @@
+# ClipMind プレビューの入口。単一サービスなのでスイムレーン（x-pr-id）は不要、
+# Host ベースで PR namespace の clipmind に直行する「丸ごとプレビュー」方式。
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: preview-entry
+spec:
+  hosts:
+    - "pr-0.clipmind.104.154.128.86.nip.io" # patched: pr-<N>.…
+  gateways:
+    - baseline/preview-gateway # k8s-action が管理する共有 Gateway に相乗り
+  http:
+    - route:
+        - destination:
+            host: clipmind # 短縮名 → この VS の namespace に解決
+            port:
+              number: 80

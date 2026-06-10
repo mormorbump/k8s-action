@@ -1,0 +1,53 @@
+# 外部アプリリポジトリ mormorbump/clipmind の PR プレビュー。
+#
+# ポイント（ADR-0004）: PullRequest Generator が監視するのはアプリリポジトリだが、
+# マニフェスト（source）はこのプラットフォームリポジトリの main から読む。
+# {{head_sha}} はイメージタグの特定のみに使う。
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: clipmind-pr-preview
+  namespace: argocd
+spec:
+  goTemplate: false
+  generators:
+    - pullRequest:
+        github:
+          owner: mormorbump
+          repo: clipmind # ← アプリリポジトリの PR を監視
+          labels:
+            - preview
+        requeueAfterSeconds: 300
+  template:
+    metadata:
+      name: "clipmind-pr-{{number}}"
+    spec:
+      project: default
+      source:
+        repoURL: https://github.com/mormorbump/k8s-action.git # ← マニフェストはプラットフォーム側
+        targetRevision: main
+        path: gitops/overlays/clipmind-template
+        kustomize:
+          namespace: "preview-clipmind-{{number}}"
+          images:
+            - "us-central1-docker.pkg.dev/k8s-action-preview-26/preview/clipmind:{{head_sha}}"
+          patches:
+            - target:
+                kind: VirtualService
+                name: preview-entry
+              patch: |-
+                - op: replace
+                  path: /spec/hosts/0
+                  value: pr-{{number}}.clipmind.104.154.128.86.nip.io
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: "preview-clipmind-{{number}}"
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+          - CreateNamespace=true
+        managedNamespaceMetadata:
+          labels:
+            istio-injection: enabled
