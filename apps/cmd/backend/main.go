@@ -17,6 +17,7 @@ type info struct {
 	Namespace string `json:"namespace"` // 配置先 namespace（downward API で注入）
 	Hostname  string `json:"hostname"`  // Pod 名
 	PRID      string `json:"pr_id"`     // 受信した x-pr-id（無ければ空）
+	Message   string `json:"message,omitempty"`
 }
 
 func main() {
@@ -34,6 +35,7 @@ func main() {
 			Namespace: os.Getenv("NAMESPACE"),
 			Hostname:  hostname,
 			PRID:      swimlane.PRID(r.Context()),
+			Message:   "new feature from PR!", // プレビュー環境の動作確認用
 		})
 	})
 
