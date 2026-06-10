@@ -82,3 +82,4 @@ kubectl -n istio-system port-forward svc/kiali 20001:20001
 - 月次予算アラート ¥7,500 を設定済み
 - 利用後は `terraform destroy`（istio → gcp の順）でリソースを削除する運用です
 - 個人用 GCP プロジェクト `k8s-action-preview-26` で運用
+
