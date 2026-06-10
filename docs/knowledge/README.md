@@ -47,7 +47,7 @@
 
 | ファイル | 状態 | 関連フェーズ | 内容 |
 |---|---|---|---|
-| container/01-image-build.md | 未着手 | Phase 1 | multi-stage build, distroless, layer cache |
+| container/01-image-build.md | ✅完了 | Phase 3, clipmind | Go+distroless / Python+uv の 2 パターン, CUDA 肥大化の罠 |
 | container/02-go-dockerfile-tips.md | 未着手 | Phase 3 | Go 用 Dockerfile のベストプラクティス |
 | container/03-artifact-registry.md | ✅完了 | Phase 1, 2 | GAR の権限, タグ戦略, GCR 比較, ECR との対応 |
 
