@@ -71,9 +71,9 @@
 | ファイル | 状態 | 関連フェーズ | 内容 |
 |---|---|---|---|
 | terraform/01-state-backend.md | ✅完了 | Phase 1 | GCS backend, state lock, force-unlock, prefix 分割, lock.hcl |
-| terraform/02-helm-provider.md | 未着手 | Phase 1-B | Terraform で Helm chart を扱う際の注意 |
+| terraform/02-helm-provider.md | ✅完了 | Phase 1-B | helm_release, GKE 認証 data source, wait/timeout, リソース縮小 |
 | terraform/03-google-provider.md | ✅完了 | Phase 1 | provider 設定, ADC, user_project_override, disable_on_destroy |
-| terraform/04-multi-stage-apply.md | 未着手 | Phase 1 | state 分割と terraform_remote_state, helm provider chicken-and-egg |
+| terraform/04-multi-stage-apply.md | ✅完了 | Phase 1-B | state 分割と terraform_remote_state, helm provider chicken-and-egg, destroy 逆順 |
 
 ### gcp
 

@@ -1,0 +1,5 @@
+project_id       = "k8s-action-preview-26"
+region           = "us-central1"
+cluster_name     = "preview"
+cluster_location = "us-central1-a"
+istio_version    = "1.27.0"
