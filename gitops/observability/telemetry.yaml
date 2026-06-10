@@ -1,0 +1,12 @@
+# メッシュ全体で Envoy アクセスログを有効化する（デフォルトは無効）。
+# root namespace (istio-system) に置くことで全 namespace に適用される。
+# kubectl logs <pod> -c istio-proxy でリクエスト単位のログが見える。
+apiVersion: telemetry.istio.io/v1
+kind: Telemetry
+metadata:
+  name: mesh-default
+  namespace: istio-system
+spec:
+  accessLogging:
+    - providers:
+        - name: envoy
