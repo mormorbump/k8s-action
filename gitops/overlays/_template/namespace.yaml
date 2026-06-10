@@ -1,0 +1,11 @@
+# PR namespace をマニフェスト管理下に置く（clipmind-template/namespace.yaml と同趣旨）。
+# Argo CD が CreateNamespace=true で自動作成した namespace は prune されないため、
+# マニフェストに含めて Application の管理リソースにし、PR クローズ時に
+# 殻ごと削除されるようにする。
+# name は kustomize の namespace 設定（ApplicationSet が preview-pr-<N> を渡す）で上書きされる。
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: preview-pr-0
+  labels:
+    istio-injection: enabled

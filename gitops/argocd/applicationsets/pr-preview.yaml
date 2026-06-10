@@ -60,7 +60,6 @@ spec:
           prune: true
           selfHeal: true
         syncOptions:
-          - CreateNamespace=true
-        managedNamespaceMetadata:
-          labels:
-            istio-injection: enabled # PR namespace にも sidecar 注入
+          # namespace は overlay の namespace.yaml で管理リソースとして作る
+          # （CreateNamespace の自動作成は prune されず殻が残るため使わない）
+          - CreateNamespace=false
