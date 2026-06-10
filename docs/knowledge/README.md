@@ -38,7 +38,7 @@
 | ファイル | 状態 | 関連フェーズ | 内容 |
 |---|---|---|---|
 | networking/01-cni-overlay.md | 未着手 | Phase 1 | CNI, overlay, Pod CIDR, Secondary IP Range |
-| networking/02-dns.md | 未着手 | Phase 1 | cluster DNS, nip.io 仕組み, search path |
+| networking/02-dns.md | ✅完了 | Phase 1-C | nip.io 仕組み, 外部 DNS とクラスタ内 DNS の層の違い |
 | networking/03-load-balancer.md | 未着手 | Phase 1 | GCP LB 種別, forwarding rule, NEG |
 | networking/04-tls-cert.md | 未着手 | Phase 4 | cert-manager, Let's Encrypt, SNI |
 | networking/05-cidr-design.md | ✅完了 | Phase 1 | Subnet/Pods/Services CIDR サイジング, max-pods-per-node, /22 採択根拠 |

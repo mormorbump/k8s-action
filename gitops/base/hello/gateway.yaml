@@ -1,0 +1,18 @@
+# Istio Gateway: Ingress Gateway (Envoy) の Listener 設定。
+# 「どのポートでどの Host を受けるか」だけを決め、ルーティングは VirtualService に委ねる。
+apiVersion: networking.istio.io/v1beta1
+kind: Gateway
+metadata:
+  name: hello-gateway
+  namespace: hello
+spec:
+  # istio-ingress namespace の Ingress Gateway Pod (label istio=ingressgateway) に設定を流し込む
+  selector:
+    istio: ingressgateway
+  servers:
+    - port:
+        number: 80
+        name: http
+        protocol: HTTP
+      hosts:
+        - "hello.104.154.128.86.nip.io"

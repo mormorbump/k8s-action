@@ -1,0 +1,8 @@
+# istio-injection: enabled ラベルが付いた namespace では
+# Mutating Admission Webhook が Pod 作成時に istio-proxy sidecar を自動注入する
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: hello
+  labels:
+    istio-injection: enabled

@@ -1,0 +1,17 @@
+# VirtualService: Gateway が受けたリクエストをどの Service に流すかのルーティング規則
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: hello
+  namespace: hello
+spec:
+  hosts:
+    - "hello.104.154.128.86.nip.io"
+  gateways:
+    - hello-gateway
+  http:
+    - route:
+        - destination:
+            host: hello.hello.svc.cluster.local
+            port:
+              number: 80
