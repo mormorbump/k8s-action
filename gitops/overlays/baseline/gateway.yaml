@@ -16,4 +16,16 @@ spec:
         protocol: HTTP
       hosts:
         - "app.104.154.128.86.nip.io"
-        - "*.104.154.128.86.nip.io" # pr-<N>.… をカバー
+        - "*.104.154.128.86.nip.io" # pr-<N>.preview.… をカバー
+    - port:
+        number: 443
+        name: https
+        protocol: HTTPS
+      tls:
+        mode: SIMPLE
+        # cert-manager が発行した TLS secret（Gateway Pod と同じ
+        # istio-ingress namespace に置く必要がある）
+        credentialName: preview-tls
+      hosts:
+        - "app.104.154.128.86.nip.io"
+        - "*.104.154.128.86.nip.io"

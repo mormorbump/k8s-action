@@ -11,12 +11,15 @@ metadata:
 spec:
   selfSigned: {}
 ---
-# 2. ルート CA 証明書（istio-ingress namespace に置く）
+# 2. ルート CA 証明書。
+# ClusterIssuer (cluster スコープ) が参照する secret は
+# cert-manager namespace（Cluster Resource Namespace）から
+# 解決されるため、ここに置く必要がある。
 apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
   name: preview-root-ca
-  namespace: istio-ingress
+  namespace: cert-manager
 spec:
   isCA: true
   commonName: preview-root-ca
