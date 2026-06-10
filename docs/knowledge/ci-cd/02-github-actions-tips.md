@@ -69,3 +69,37 @@ ApplicationSet の sync がイメージ push より先に走ると、
 Pod は一時的に ImagePullBackOff になる。push 完了後に kubelet の
 リトライで自然回復するため、学習用途では対策不要と判断。
 本番では「CI 完了を待って label を付ける」「Image Updater を使う」等で解消する。
+
+## GITHUB_TOKEN の再帰防止（実際に踏んだ）
+
+**ワークフローが `GITHUB_TOKEN` で行った操作のイベントは、他のワークフローを
+トリガーしない**（無限ループ防止の仕様）。
+
+実例: auto-preview-label が `gh pr edit --add-label preview` でラベルを付けても、
+`labeled` をトリガーに持つ pr-build は起動しなかった。
+
+対処の選択肢:
+
+| 方法 | 備考 |
+|---|---|
+| PAT / GitHub App トークンでラベル付与 | イベントが発火するが、トークン管理が増える |
+| トリガーをイベント連鎖に依存させない（採用） | pr-build を `author_association == 'OWNER'` でも通す |
+| ポーリング型の消費者は影響なし | Argo CD ApplicationSet は API ポーリングなのでラベルを普通に見える |
+
+## author_association によるオーナー判定
+
+```yaml
+if: github.event.pull_request.author_association == 'OWNER'
+```
+
+public リポジトリで「本人の PR は全自動、第三者のフォーク PR は手動ゲート」を
+実現する定番。値は OWNER / MEMBER / COLLABORATOR / CONTRIBUTOR / NONE 等。
+フォーク PR はそもそも `pull_request` イベントでは secrets / id-token に
+アクセスできないため、WIF 認証も構造的に通らない（二重の防御になる）。
+
+## pull_request_target の注意
+
+auto-preview-label は `pull_request_target` を使う（base ブランチの定義で実行され、
+ラベル付与に必要な write 権限を持つ）。**PR のコードを checkout しない限り安全**。
+checkout してビルドするのは典型的な脆弱性パターンなので pr-build 側は
+通常の `pull_request` のまま。
