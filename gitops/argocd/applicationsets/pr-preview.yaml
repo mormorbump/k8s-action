@@ -41,7 +41,7 @@ spec:
               patch: |-
                 - op: replace
                   path: /spec/hosts/0
-                  value: pr-{{number}}.104.154.128.86.nip.io
+                  value: pr-{{number}}.preview.104.154.128.86.nip.io
                 - op: replace
                   path: /spec/http/0/headers/request/set/x-pr-id
                   value: "{{number}}"
