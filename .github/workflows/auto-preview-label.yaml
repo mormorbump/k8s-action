@@ -1,0 +1,25 @@
+# リポジトリオーナー自身の PR に preview ラベルを自動付与する。
+# これにより本人の PR は「作るだけ」でプレビュー環境が立つ。
+#
+# セキュリティ設計（public リポジトリのため）:
+# - preview ラベルが pr-build / ApplicationSet 両方のゲートであり続ける
+# - フォークからの第三者 PR は author_association != OWNER なので
+#   自動ラベルされず、オーナーが手動でラベルを付けない限り何も実行されない
+# - pull_request_target を使うが PR のコードは checkout しない（安全）
+name: auto-preview-label
+
+on:
+  pull_request_target:
+    types: [opened, reopened]
+
+permissions:
+  pull-requests: write
+
+jobs:
+  add-label:
+    if: github.event.pull_request.author_association == 'OWNER'
+    runs-on: ubuntu-latest
+    steps:
+      - run: gh pr edit ${{ github.event.pull_request.number }} --repo ${{ github.repository }} --add-label preview
+        env:
+          GH_TOKEN: ${{ github.token }}
