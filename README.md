@@ -40,6 +40,26 @@ backend-swimlane VS ── x-pr-id 一致 → PR の backend / 不一致 → bas
 第三者（フォーク）の PR は安全のため自動実行されない。
 オーナーが内容を確認して `preview` ラベルを手動で付けたときだけ環境が立つ。
 
+### 任意のアプリリポジトリを組み込む（ADR-0004）
+
+このリポジトリ自身だけでなく、**外部のアプリリポジトリの PR** にも
+プレビュー環境を提供できる（初例: [clipmind](https://github.com/mormorbump/clipmind)）。
+
+アプリリポジトリ側（コピペで済む）:
+
+1. `Dockerfile` を用意（イメージ名 = リポジトリ名）
+2. `.github/workflows/pr-build.yaml` と `auto-preview-label.yaml` をコピーし、
+   イメージ名だけ変更。`preview` ラベルをリポジトリに作成
+
+プラットフォーム側（このリポジトリ）:
+
+1. `gitops/overlays/<アプリ名>-template/` にマニフェスト一式を作成
+   （アプリ + 依存ストア + 入口 VirtualService）
+2. `gitops/argocd/applicationsets/<アプリ名>-pr-preview.yaml` を作成して apply。
+   Generator はアプリリポジトリの PR を監視し、マニフェストは本リポジトリから読む
+
+ホストは `pr-<N>.<アプリ名>.<INGRESS-IP>.nip.io` で共有 Gateway に相乗りする。
+
 ### インフラの構築（初回）
 
 ```bash
