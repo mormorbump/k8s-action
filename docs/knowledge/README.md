@@ -31,7 +31,7 @@
 | istio/02-traffic-management.md | ✅完了 | Phase 1, 3 | Gateway, VirtualService, DestinationRule, subset, ヘッダー分岐 |
 | istio/03-sidecar-injection.md | ✅完了 | Phase 1 | auto injection, init container, iptables, Mutating Webhook |
 | istio/04-header-routing.md | ✅完了 | Phase 3 | x-pr-id スイムレーン全体像, ヘッダー注入/match, exportTo, 短縮名解決 |
-| istio/05-observability.md | 未着手 | Phase 4 | Kiali, Prometheus, Jaeger |
+| istio/05-observability.md | ✅完了 | Phase 4 | sidecar メトリクス, Kiali トポロジ, Telemetry API, proxy-config デバッグ定石 |
 
 ### networking
 
@@ -40,7 +40,7 @@
 | networking/01-cni-overlay.md | 未着手 | Phase 1 | CNI, overlay, Pod CIDR, Secondary IP Range |
 | networking/02-dns.md | ✅完了 | Phase 1-C | nip.io 仕組み, 外部 DNS とクラスタ内 DNS の層の違い |
 | networking/03-load-balancer.md | 未着手 | Phase 1 | GCP LB 種別, forwarding rule, NEG |
-| networking/04-tls-cert.md | 未着手 | Phase 4 | cert-manager, Let's Encrypt, SNI |
+| networking/04-tls-cert.md | ✅完了 | Phase 4 | cert-manager 2 段 CA, ClusterIssuer の secret 解決先, Gateway credentialName/SDS |
 | networking/05-cidr-design.md | ✅完了 | Phase 1 | Subnet/Pods/Services CIDR サイジング, max-pods-per-node, /22 採択根拠 |
 
 ### container
