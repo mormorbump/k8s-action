@@ -74,6 +74,8 @@ gh label create preview --repo mormorbump/<app> --color 0E8A16
 ```
 
 - pr-build 内のイメージ名を `…/preview/<app>:${{ github.event.pull_request.head.sha }}` にする
+- pr-build にはビルド後に**プレビュー URL を PR にコメントする job** が含まれる。
+  コメント内の URL のアプリ名ラベル（`pr-<N>.<app>.…`）も書き換えること
 - WIF はオーナー単位（`repository_owner == mormorbump`）で許可済みのため、
   GCP 側の追加設定は不要
 
