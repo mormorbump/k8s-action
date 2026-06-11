@@ -40,11 +40,13 @@ backend-swimlane VS ── x-pr-id 一致 → PR の backend / 不一致 → bas
 第三者（フォーク）の PR は安全のため自動実行されない。
 オーナーが内容を確認して `preview` ラベルを手動で付けたときだけ環境が立つ。
 
-## 任意のアプリリポジトリを組み込む手順（ADR-0004）
+## 任意のアプリリポジトリを組み込む手順（ADR-0006）
 
-この基盤は、**mormorbump 配下の任意のアプリリポジトリ**の PR にプレビュー環境を
-提供できる。実装済みの例: [clipmind](https://github.com/mormorbump/clipmind)
-（FastAPI + postgres/redis/qdrant の「丸ごとプレビュー」）。
+この基盤は **mormorbump 配下の任意のアプリリポジトリ**の PR にプレビュー環境を
+提供する。**k8s-action はアプリのマニフェストを一切持たず**、デプロイ定義は
+各アプリリポジトリの `deploy/` にある（実装例:
+[clipmind](https://github.com/mormorbump/clipmind) の `deploy/`）。
+k8s-action 側で必要なのは registry に 1 エントリ足すことだけ。
 
 ### 前提条件（アプリ側が満たすべきこと）
 
@@ -79,73 +81,51 @@ gh label create preview --repo mormorbump/<app> --color 0E8A16
 - WIF はオーナー単位（`repository_owner == mormorbump`）で許可済みのため、
   GCP 側の追加設定は不要
 
-### STEP 3: このリポジトリにマニフェストのテンプレートを作る
+### STEP 3: アプリリポジトリに `deploy/` を置く
 
-`gitops/overlays/<app>-template/` を作成（`clipmind-template/` をコピーして調整）:
+kustomize 一式を `deploy/` に作る（`clipmind` の `deploy/` をコピーして調整するのが早い）。
+**アプリ固有の構成はすべてここに閉じる**。
 
-| ファイル | 内容 | 調整ポイント |
+| ファイル | 内容 | 規約 |
 |---|---|---|
-| `app.yaml` | API の Deployment + Service | イメージ名, ポート, env, readinessProbe, initContainer（マイグレーション） |
-| `ui.yaml` | Web UI の Deployment + Service（UI が無ければ不要） | API 接続 env 2 系統（下記） |
-| `stores.yaml` | 依存ストア（不要なら削除） | ストアには `sidecar.istio.io/inject: "false"` を付けて CPU 節約 |
-| `preview-istio.yaml` | 入口 VirtualService | hosts のアプリ名ラベル（`pr-0.<app>.…`）と API パスの列挙 |
-| `kustomization.yaml` | 上記をまとめる | namespace プレースホルダ |
+| `namespace.yaml` | Namespace（`istio-injection: enabled`） | name は任意（kustomize が `preview-<app>-<N>` に上書き） |
+| `app.yaml` | API の Deployment + Service | initContainer でマイグレーション可 |
+| `ui.yaml` | Web UI（無ければ不要） | ブラウザ向け URL は相対パスに（下記） |
+| `stores.yaml` | 依存ストア（不要なら省略） | `sidecar.istio.io/inject: "false"` で CPU 節約 |
+| `virtualservice.yaml` | 入口 VS（**名前は `preview-entry` 固定**） | API パスを列挙、デフォルトは UI |
+| `kustomization.yaml` | 上記 + `images` | CI が作るイメージ名を列挙 |
 
-**front + API 構成の標準パターン**（clipmind-template が実例）:
+k8s-action が前提にする**規約**（これ以外 k8s-action はアプリを知らない）:
 
-- 入口 VS は「**API のパスプレフィックスを列挙し、デフォルトは UI**」の path 分岐にする。
-  UI フレームワーク内部のパス（websocket 等）を列挙せずに済み、
-  アプリごとの差分は「API パスの一覧」だけになる
-- UI には API 接続の env を 2 系統渡す:
-  - `<APP>_API_URL` … UI サーバプロセス → API（クラスタ内 DNS `http://<api-service>`）
-  - `<APP>_PUBLIC_API_URL` … ブラウザが `<img src>` 等で参照する URL
-    （外部ホスト。ApplicationSet が PR ごとにパッチ）
+- 入口 VS の名前は `preview-entry`（host を `pr-<N>.<app>.<IP>.nip.io` に patch される）
+- VS の destination は**短縮名**（`host: clipmind`）。namespace 差し替えに追従する
+- **ブラウザ向け URL（画像 `<img src>` 等）は相対パス**（`/media/...`）にする。
+  同一ホストの VS が API に振り分けるので、外部ホストを env 注入する必要がない
+- API/UI 混在は「**API パスを列挙し、デフォルトは UI**」の path 分岐
+  （UI フレームワークの内部パスや websocket を列挙せずに済む）
+- ストアは PVC なしの使い捨て（PR クローズで全消去）。Secret は deploy/ に入れない
 
-確認: `kubectl kustomize gitops/overlays/<app>-template` が通ること。
+確認: `kubectl kustomize deploy/` が通ること。
 
-注意点:
+### STEP 4: k8s-action の registry に 1 エントリ追加
 
-- VS の destination は**短縮名**（例: `host: clipmind`）にする。
-  ApplicationSet が namespace を差し替えるだけで行き先が PR 環境に追従する
-- ストアは PVC なしの使い捨て（PR クローズで全消去）
-- Secret（API キー等）はテンプレートに入れない。必要なら手動で
-  PR namespace に作るか、SealedSecret 等を導入する
-
-### STEP 4: ApplicationSet を追加して apply
-
-`gitops/argocd/applicationsets/<app>-pr-preview.yaml`
-（`clipmind-pr-preview.yaml` をコピーして `<app>` を置換）:
+`gitops/argocd/applicationsets/preview.yaml` の list generator に足すだけ:
 
 ```yaml
-generators:
-  - pullRequest:
-      github:
-        owner: mormorbump
-        repo: <app>            # ← アプリリポジトリの PR を監視
-        labels: [preview]
-      requeueAfterSeconds: 300
-template:
-  spec:
-    source:
-      repoURL: https://github.com/mormorbump/k8s-action.git  # ← マニフェストは本リポジトリ
-      targetRevision: main
-      path: gitops/overlays/<app>-template
-      kustomize:
-        namespace: "preview-<app>-{{number}}"
-        images:
-          - "us-central1-docker.pkg.dev/k8s-action-preview-26/preview/<app>:{{head_sha}}"
-        patches:
-          - target: { kind: VirtualService, name: preview-entry }
-            patch: |-
-              - op: replace
-                path: /spec/hosts/0
-                value: pr-{{number}}.<app>.104.154.128.86.nip.io
+elements:
+  - repo: clipmind
+    images: ["clipmind", "clipmind-ui"]
+  - repo: <app>            # ← 追加（これだけ）
+    images: ["<app>"]      # CI が作るイメージ名。UI 別なら ["<app>", "<app>-ui"]
 ```
 
 ```bash
-kubectl apply -f gitops/argocd/applicationsets/<app>-pr-preview.yaml
-git add . && git commit && git push   # テンプレートは main から読まれるため push 必須
+kubectl apply -f gitops/argocd/applicationsets/preview.yaml
+git add . && git commit && git push
 ```
+
+汎用 ApplicationSet が namespace（`preview-<app>-<N>`）・イメージタグ（head SHA）・
+VS host を自動で埋める。**k8s-action 側で書くのはこの 1 エントリのみ**。
 
 ### STEP 5: 動作確認
 
@@ -162,10 +142,13 @@ curl http://pr-<N>.<app>.104.154.128.86.nip.io/health      # 200 で完成
 | 症状 | 原因 | 対処 |
 |---|---|---|
 | Pod が ImagePullBackOff | sync がビルド完了より先行 | push 完了後に自動回復するので待つ |
-| Pod が Pending | ノード CPU requests 満杯 | 他のプレビューを閉じる（同時 2〜3 環境が上限） |
+| Pod が Pending | ノード CPU requests 満杯 | 他のプレビューを閉じる（同時 1〜2 環境が上限。ADR-0005） |
 | ホストにアクセスできない | nip.io の IP 誤パース | ホスト形式は `pr-<N>.<app>.<IP>.nip.io` を守る（`<app>` ラベル必須） |
+| UI が真っ白 | UI と API の静的パス衝突 | UI のアセットと API の `/static` を分離（clipmind は API を `/media` に） |
 | Application が生えない | ApplicationSet のポーリング間隔 | 最大 5 分待つ。ラベルの有無も確認 |
-| 環境は消えたが namespace が残る | Argo CD は作成した namespace を消さない | `kubectl delete ns preview-<app>-<N>` |
+
+> namespace は `deploy/namespace.yaml` で管理リソースとして作るため、PR クローズで
+> 殻ごと自動削除される（ADR-0005）。GAR の古いイメージも cleanup policy で自動回収。
 
 ### インフラの構築（初回）
 
