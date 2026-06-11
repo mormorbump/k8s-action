@@ -12,14 +12,17 @@ resource "google_iam_workload_identity_pool_provider" "github" {
   display_name                       = "GitHub OIDC"
 
   attribute_mapping = {
-    "google.subject"       = "assertion.sub"
-    "attribute.repository" = "assertion.repository"
-    "attribute.ref"        = "assertion.ref"
-    "attribute.actor"      = "assertion.actor"
+    "google.subject"             = "assertion.sub"
+    "attribute.repository"       = "assertion.repository"
+    "attribute.repository_owner" = "assertion.repository_owner"
+    "attribute.ref"              = "assertion.ref"
+    "attribute.actor"            = "assertion.actor"
   }
 
-  # CEL: 指定リポジトリからのみ assume 可
-  attribute_condition = "assertion.repository == \"${var.github_owner}/${var.github_repo}\""
+  # CEL: 指定オーナー配下の全リポジトリから assume 可。
+  # 当初はリポジトリ単位だったが、任意のアプリリポジトリの PR プレビューに
+  # 対応するため owner 単位に緩和した（ADR-0004）。
+  attribute_condition = "assertion.repository_owner == \"${var.github_owner}\""
 
   oidc {
     issuer_uri = "https://token.actions.githubusercontent.com"
@@ -37,7 +40,7 @@ resource "google_service_account" "deployer" {
 resource "google_service_account_iam_member" "wif_binding" {
   service_account_id = google_service_account.deployer.name
   role               = "roles/iam.workloadIdentityUser"
-  member             = "principalSet://iam.googleapis.com/${google_iam_workload_identity_pool.github.name}/attribute.repository/${var.github_owner}/${var.github_repo}"
+  member             = "principalSet://iam.googleapis.com/${google_iam_workload_identity_pool.github.name}/attribute.repository_owner/${var.github_owner}"
 }
 
 # SA に最小権限: Artifact Registry 書き込み
