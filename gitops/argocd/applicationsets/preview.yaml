@@ -1,0 +1,74 @@
+# 汎用 PR プレビュー ApplicationSet（アプリ非依存・ADR-0006）。
+#
+# このリポジトリが持つアプリ知識はこの 1 ファイルの list generator(=registry)だけ。
+# マニフェストは各アプリリポジトリの deploy/ にあり、ここからは一切参照しない。
+#
+# 新しいアプリを足す = 下の elements に { repo, images } を 1 エントリ追加するだけ。
+#
+# 規約（ADR-0006）:
+#   - アプリの deploy/ は kustomize（namespace.yaml / VirtualService名=preview-entry を含む）
+#   - namespace は preview-<repo>-<N>、host は pr-<N>.<repo>.<INGRESS-IP>.nip.io
+#   - images は registry の名前リストを head SHA タグで差し替え
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: preview
+  namespace: argocd
+spec:
+  goTemplate: true
+  goTemplateOptions: ["missingkey=error"]
+  generators:
+    - matrix:
+        generators:
+          # ── アプリ登録簿(registry): アプリ追加はここに 1 エントリ ──
+          - list:
+              elements:
+                - repo: clipmind
+                  images: ["clipmind", "clipmind-ui"]
+          # ── 各アプリの preview ラベル付き open PR ──
+          - pullRequest:
+              github:
+                owner: mormorbump
+                repo: "{{.repo}}" # list の値を参照
+                labels:
+                  - preview
+              requeueAfterSeconds: 300
+  template:
+    metadata:
+      name: "{{.repo}}-pr-{{.number}}"
+    spec:
+      project: default
+      source:
+        repoURL: "https://github.com/mormorbump/{{.repo}}.git"
+        targetRevision: "{{.head_sha}}"
+        path: deploy
+        kustomize:
+          namespace: "preview-{{.repo}}-{{.number}}"
+          patches:
+            - target:
+                kind: VirtualService
+                name: preview-entry
+              patch: |-
+                - op: replace
+                  path: /spec/hosts/0
+                  value: pr-{{.number}}.{{.repo}}.104.154.128.86.nip.io
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: "preview-{{.repo}}-{{.number}}"
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+          # namespace は deploy/namespace.yaml で管理リソースとして作る（殻を残さない）
+          - CreateNamespace=false
+  # images は要素数がアプリごとに違う（API のみ / API+UI 等）ため、
+  # templatePatch の range で動的生成する（template の固定配列では表現できない）
+  templatePatch: |
+    spec:
+      source:
+        kustomize:
+          images:
+          {{- range .images }}
+            - us-central1-docker.pkg.dev/k8s-action-preview-26/preview/{{ . }}:{{ $.head_sha }}
+          {{- end }}
